@@ -1,0 +1,122 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Pending Payments</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background: url('./images/2.png') no-repeat center center/cover;
+            margin: 0;
+            padding: 0;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            min-height: 100vh;
+        }
+        .edit-icon {
+    cursor: pointer;
+    margin-left: 5px;
+    color: #007bff;
+    font-size: 14px;
+}
+
+.edit-icon:hover {
+    color: #0056b3;
+}
+
+        h2 {
+            color: white;
+            text-align: center;
+            margin-bottom: 20px;
+            font-size: 28px;
+        }
+
+        .order-container {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: center;
+            gap: 15px;
+            width: 90%;
+            max-width: 1000px;
+        }
+
+        .order-card {
+            background: rgba(255, 255, 255, 0.9);
+            padding: 15px;
+            border-radius: 10px;
+            width: 350px;
+            box-shadow: 2px 2px 10px rgba(0, 0, 0, 0.2);
+            transition: transform 0.3s ease-in-out;
+            animation: fadeInUp 0.5s ease-in-out;
+        }
+
+        .order-card:hover {
+            transform: scale(1.05);
+        }
+
+        .order-card h3 {
+            margin: 0 0 10px;
+            color: #333;
+        }
+
+        .order-card p {
+            margin: 5px 0;
+            font-size: 14px;
+            color: #444;
+        }
+
+        .pending-amount {
+            color: red;
+            font-weight: bold;
+        }
+
+        .back-btn {
+            display: inline-block;
+            margin-top: 20px;
+            padding: 10px 20px;
+            background: rgb(36, 21, 36);
+            color: white;
+            text-decoration: none;
+            border-radius: 5px;
+            transition: background 0.3s ease-in-out;
+        }
+        h2 {
+    color: rgb(169, 169, 4);
+    background: white;
+    padding: 20px;
+    border-radius: 50px;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+    display: inline-block;
+    font-family: Arial, sans-serif;
+}
+
+        .back-btn:hover {
+            background: #e65c00;
+        }
+
+        @keyframes fadeInUp {
+            from {
+                opacity: 0;
+                transform: translateY(20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+    </style>
+</head>
+<body>
+    <h2>Pending Payments</h2>
+    <div class="order-container" id="pendingOrdersContainer">
+        <!-- Orders will be added here dynamically -->
+    </div>
+    <a href="index.html" class="back-btn">Back to Home</a>
+
+    <script type="module" src="firebase-config.js"></script>
+    <script type="module" src="pendingOrders.js"></script>
+</body>
+</html>

@@ -1,0 +1,241 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Order History</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background: url('./images/2.png') no-repeat center center/cover;
+            margin: 0;
+            padding: 0;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            min-height: 100vh;
+            text-align: center;
+        }
+        .container {
+            width: 90%;
+            max-width: 1000px;
+            margin: auto;
+            overflow-x: auto;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 20px;
+            animation: fadeInUp 0.5s ease-in-out;
+        }
+        th, td {
+            padding: 12px;
+            border: 1px solid #ddd;
+            text-align: center;
+        }
+        th {
+            background: #333;
+            color: white;
+        }
+        .pending-order {
+            background-color: #ffcccb; /* Light Red */
+        }
+        .pending-payment {
+            background-color: #ffedcc; /* Light Orange */
+        }
+        .completed-order {
+            background-color: #d4edda; /* Light Green */
+        }
+        .back-button {
+            margin-top: 20px;
+            padding: 10px 15px;
+            background: orange;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+        .back-button:hover {
+            background: #e65c00;
+        }
+        @keyframes fadeInUp {
+            from {
+                opacity: 0;
+                transform: translateY(20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+        h2 {
+    color: rgb(169, 169, 4);
+    background: white;
+    padding: 20px;
+    border-radius: 50px;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+    display: inline-block;
+    font-family: Arial, sans-serif;
+}
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h2>Order History</h2>
+        <table>
+            <thead>
+                <tr>
+                    <th>Customer Name</th>
+                    <th>Address</th>
+                    <th>Order Date</th>
+                    <th>Quantity</th>
+                    <th>Flavor & Size</th>
+                    <th>Cost per Piece</th>
+                    <th>Total Payment</th>
+                    <th>Advance Payment</th>
+                    <th>Pending Amount</th>
+                </tr>
+            </thead>
+            <tbody id="orderHistoryBody"></tbody>
+        </table>
+        <button class="back-button" onclick="window.location.href='index.html'">Back to Home</button>
+    </div>
+    <script>
+  document.addEventListener("DOMContentLoaded", async () => {
+    const orderHistoryBody = document.getElementById("orderHistoryBody");
+    const todayYMD = new Date().toISOString().slice(0, 10);
+
+    const toYMD = (d) => {
+      if (!d && d !== 0) return null;
+      try {
+        if (typeof d === "string") {
+          const iso = new Date(d);
+          if (!isNaN(iso)) return iso.toISOString().slice(0, 10);
+          if (/^\d{4}-\d{2}-\d{2}/.test(d)) return d.slice(0, 10);
+        } else if (typeof d === "number") {
+          const date = new Date(d > 1e12 ? d : d * 1000);
+          if (!isNaN(date)) return date.toISOString().slice(0, 10);
+        } else if (typeof d === "object") {
+          if (d.seconds) {
+            const date = new Date(d.seconds * 1000);
+            if (!isNaN(date)) return date.toISOString().slice(0, 10);
+          }
+          const date = new Date(d);
+          if (!isNaN(date)) return date.toISOString().slice(0, 10);
+        }
+      } catch (e) {}
+      return null;
+    };
+
+    try {
+      const resp = await fetch("http://localhost:5000/get-orders");
+      if (!resp.ok) throw new Error(`HTTP ${resp.status} ${resp.statusText}`);
+
+      const payload = await resp.json();
+      const orders = Array.isArray(payload)
+        ? payload
+        : payload?.orders || payload?.data || [];
+
+      if (!Array.isArray(orders)) {
+        throw new Error("API shape unexpected (not an array).");
+      }
+
+      if (orders.length === 0) {
+        orderHistoryBody.innerHTML =
+          "<tr><td colspan='10'>No orders found.</td></tr>";
+        return;
+      }
+
+      // Normalize + sort by date desc (newest first)
+      const normalized = orders
+        .map((o) => {
+  let jsDate;
+  if (o.orderDate?.seconds) {
+    jsDate = new Date(o.orderDate.seconds * 1000);
+  } else {
+    jsDate = new Date(o.orderDate);
+  }
+  return { ...o, _orderDateYMD: jsDate.toISOString().slice(0, 10) };
+})
+        .sort((a, b) => (a._orderDateYMD > b._orderDateYMD ? -1 : 1));
+
+      normalized.forEach((order) => {
+        const row = document.createElement("tr");
+
+        // Default completed
+        let rowClass = "completed-order";
+        if (order._orderDateYMD && order._orderDateYMD >= todayYMD) {
+          rowClass = "pending-order"; // upcoming/today
+        } else if ((order.pendingAmount ?? 0) > 0) {
+          rowClass = "pending-payment";
+        }
+        row.classList.add(rowClass);
+
+        row.innerHTML = `
+          <td>${order.customerName || "-"}</td>
+          <td>${order.address || "-"}</td>
+          <td>${formatDate(order._orderDateYMD) || "-"}</td>
+          <td>${order.quantity ?? "-"}</td>
+          <td>${order.flavorSize || "-"}</td>
+          <td>₹${order.costPerPiece ?? "-"}</td>
+          <td>₹${order.totalPayment ?? "-"}</td>
+          <td>₹${order.advancePayment ?? "-"}</td>
+          <td>₹${order.pendingAmount ?? "-"}</td>
+          <td><button class="delete-btn" onclick="deleteOrder('${
+            order.id
+          }')">🗑️</button></td>
+        `;
+        orderHistoryBody.appendChild(row);
+      });
+    } catch (error) {
+      console.error("Error fetching orders:", error);
+      orderHistoryBody.innerHTML =
+        "<tr><td colspan='10'>Error loading orders.</td></tr>";
+    }
+
+    function formatDate(ymd) {
+      if (!ymd) return "-";
+      const d = new Date(ymd);
+      if (isNaN(d)) return ymd;
+      return d.toLocaleDateString("en-GB");
+    }
+  });
+
+  async function deleteOrder(orderId) {
+    const confirmDelete = confirm(
+      "⚠️ Are you sure you want to delete this order permanently?"
+    );
+    if (!confirmDelete) return;
+
+    try {
+      const response = await fetch(
+        `http://localhost:5000/delete-order/${orderId}`,
+        { method: "DELETE" }
+      );
+      const result = await response.json();
+      if (response.ok) {
+        alert("✅ Order deleted successfully!");
+        location.reload();
+      } else {
+        alert("❌ Failed to delete order: " + (result?.error || "Unknown"));
+      }
+    } catch (error) {
+      console.error("Error deleting order:", error);
+      alert("❌ Error deleting order. Please try again.");
+    }
+  }
+
+  window.addEventListener("pageshow", function (event) {
+    // If the page was loaded from cache, reload it
+    if (event.persisted) {
+        window.location.reload();
+    } else {
+        fetchOrders(); // Your function to get orders from Firestore
+    }
+});
+</script>
+
+
+</body>
+</html>

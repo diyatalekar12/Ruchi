@@ -1,0 +1,20 @@
+{
+  "name": "Ruchi IceCream",
+  "short_name": "Ruchi",
+  "start_url": "/frontend/index.html",
+  "display": "standalone",
+  "theme_color": "#6a0dad",
+  "background_color": "#ffcc00",
+  "icons": [
+    {
+      "src": "/frontend/icons/icon-192x192.png",
+      "sizes": "192x192",
+      "type": "image/png"
+    },
+    {
+      "src": "/frontend/icons/icon-512x512.png",
+      "sizes": "512x512",
+      "type": "image/png"
+    }
+  ]
+}

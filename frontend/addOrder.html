@@ -1,0 +1,173 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Add Order</title>
+    <link rel="stylesheet" href="styles.css">
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            font-family: 'Poppins', sans-serif;
+            text-align: center;
+            color: white;
+            background: url('images/2.png') no-repeat center center/cover;
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            animation: moveBackground 10s linear infinite alternate;
+        }
+
+        @keyframes moveBackground {
+            0% { background-position: center top; }
+            100% { background-position: center bottom; }
+        }
+
+        .form-card {
+            background: rgba(0, 0, 0, 0.8);
+            padding: 25px;
+            border-radius: 15px;
+            width: 40%;
+            box-shadow: 0px 4px 10px rgba(255, 215, 0, 0.5);
+            transition: transform 0.3s ease;
+        }
+
+        .form-card:hover {
+            transform: scale(1.02);
+        }
+
+        h2 {
+            margin-bottom: 15px;
+            color: #FFD700;
+        }
+
+        .input-container {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 10px;
+        }
+
+        input {
+            width: 80%;
+            padding: 10px;
+            border-radius: 8px;
+            border: none;
+            font-size: 16px;
+            text-align: center;
+            background: white;
+            color: black;
+        }
+
+        .button-container {
+            display: flex;
+            justify-content: center;
+            gap: 15px;
+            margin-top: 15px;
+        }
+
+        button {
+            width: 45%;
+            padding: 12px;
+            border-radius: 10px;
+            border: none;
+            font-size: 16px;
+            font-weight: bold;
+            color: white;
+            background: linear-gradient(45deg, #FFD700, #6A0DAD);
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        button:hover {
+            background: linear-gradient(45deg, #6A0DAD, #FFD700);
+            transform: scale(1.05);
+        }
+    </style>
+</head>
+<body>
+    <div class="form-card">
+        <h2>Add Order</h2>
+        <form id="orderForm">
+            <div class="input-container">
+                <input type="text" id="customerName" placeholder="Customer Name" required>
+                <input type="text" id="address" placeholder="Address" required>
+                <input type="date" id="orderDate" placeholder="Order Date" required>
+                <input type="number" id="quantity" placeholder="Quantity" required>
+                <input type="text" id="flavorSize" placeholder="Flavour & Size" required>
+                <input type="number" id="costPerPiece" placeholder="Cost per piece" required>
+                <input type="number" id="totalPayment" placeholder="Total Payment" readonly>
+                <input type="number" id="advancePayment" placeholder="Advance Payment" required>
+                <input type="number" id="pendingAmount" placeholder="Pending Amount" readonly>
+            </div>
+            <div class="button-container">
+                <button onclick="window.location.href='index.html'">Back</button>
+                <button type="submit">Submit Order</button>
+            </div>
+        </form>
+    </div>
+
+    <!-- Include Firebase configuration -->
+    <script type="module">
+        document.getElementById('quantity').addEventListener('input', calculateTotal);
+    document.getElementById('costPerPiece').addEventListener('input', calculateTotal);
+    document.getElementById('advancePayment').addEventListener('input', calculatePending);
+
+    function calculateTotal() {
+        let quantity = parseFloat(document.getElementById('quantity').value) || 0;
+        let costPerPiece = parseFloat(document.getElementById('costPerPiece').value) || 0;
+        let total = quantity * costPerPiece;
+        document.getElementById('totalPayment').value = total;
+        calculatePending();
+    }
+
+    function calculatePending() {
+        let total = parseFloat(document.getElementById('totalPayment').value) || 0;
+        let advance = parseFloat(document.getElementById('advancePayment').value) || 0;
+        document.getElementById('pendingAmount').value = total - advance;
+    }
+
+    document.getElementById('orderForm').addEventListener('submit', async function(event) {
+    event.preventDefault();
+
+    const orderDateValue = document.getElementById('orderDate').value;
+    if (!orderDateValue) {
+    alert("Please select a valid order date.");
+    return;
+} // Get selected date
+    const orderDateTimestamp = new Date(orderDateValue).toISOString(); // Convert to Date object
+
+    const orderData = {
+        customerName: document.getElementById('customerName').value,
+        address: document.getElementById('address').value,
+        orderDate: document.getElementById('orderDate').value, // Use selected orderDate
+        quantity: document.getElementById('quantity').value,
+        flavorSize: document.getElementById('flavorSize').value,
+        costPerPiece: document.getElementById('costPerPiece').value,
+        totalPayment: document.getElementById('totalPayment').value,
+        advancePayment: document.getElementById('advancePayment').value,
+        pendingAmount: document.getElementById('pendingAmount').value,
+        createdAt: new Date() // Store current timestamp separately
+    };
+
+    try {
+        await fetch("http://localhost:5000/add-order", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(orderData),
+        });
+
+        alert("✅ Order added successfully!");
+        document.getElementById("orderForm").reset();
+    } catch (error) {
+        console.error("❌ Error adding order:", error);
+        alert("Error submitting order.");
+    }
+});
+
+    </script>
+</body>
+</html>

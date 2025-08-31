@@ -1,0 +1,213 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Pending Orders</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background: url('./images/2.png') repeat center center/cover;
+            margin: 0;
+            padding: 0;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            min-height: 100vh;
+            animation: moveBackground 20s linear infinite;
+        }
+
+        @keyframes moveBackground {
+            0% { background-position: 0 0; }
+            100% { background-position: 100px 100px; }
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: auto;
+            text-align: center;
+        }
+
+        .orders-grid {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: center;
+            gap: 15px;
+        }
+
+        .card {
+            background: white;
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 3px 3px 12px rgba(0, 0, 0, 0.15);
+            text-align: left;
+            width: calc(25% - 15px);
+            min-width: 250px;
+            animation: fadeInUp 0.5s ease-in-out;
+        }
+
+        @keyframes fadeInUp {
+            from {
+                opacity: 0;
+                transform: translateY(20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .card h3 {
+            margin: 0 0 5px;
+            color: #333;
+        }
+
+        .card p {
+            margin: 5px 0;
+            color: #555;
+        }
+
+        .btn {
+            background-color: #28a745;
+            color: white;
+            padding: 10px 15px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            margin-top: 10px;
+        }
+
+        .btn:hover {
+            background-color: #218838;
+        }
+
+        .home-btn {
+            background-color: rgb(36, 21, 36);
+            color: white;
+            padding: 12px 18px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            margin-top: 20px;
+            display: block;
+            text-align: center;
+        }
+
+        .home-btn:hover {
+            background-color: #e65c00;
+        }
+        h2 {
+    color: rgb(169, 169, 4);
+    background: white;
+    padding: 20px;
+    border-radius: 50px;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+    display: inline-block;
+    font-family: Arial, sans-serif;
+}
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h2>Pending Orders</h2>
+        <div id="ordersContainer" class="orders-grid"></div>
+        <button class="home-btn" onclick="goHome()">Back to Home</button>
+    </div>
+
+    <script>
+        document.addEventListener("DOMContentLoaded", async () => {
+            const ordersContainer = document.getElementById("ordersContainer");
+            const currentDate = new Date().toISOString().split('T')[0];
+
+            try {
+                const response = await fetch("http://localhost:5000/get-orders");
+const orders = await response.json();
+
+if (!Array.isArray(orders)) {
+    console.error("Unexpected data format:", orders);
+    ordersContainer.innerHTML = "<p>Error loading orders.</p>";
+    return;
+}
+
+let pendingOrders = orders.filter(order => {
+    const orderDateObj = new Date(order.orderDate);
+    const todayObj = new Date(currentDate);
+    return orderDateObj >= todayObj && !order.isDelivered;
+});
+
+
+
+                
+                // Sort pending orders by orderDate (earliest first)
+pendingOrders.sort((a, b) => {
+let aDate = a.orderDate?.seconds ? new Date(a.orderDate.seconds * 1000) : new Date(a.orderDate);
+let bDate = b.orderDate?.seconds ? new Date(b.orderDate.seconds * 1000) : new Date(b.orderDate);
+return aDate - bDate;
+});
+
+
+if (pendingOrders.length === 0) {
+    ordersContainer.innerHTML = "<p>No pending payments.</p>";
+    return;
+}
+pendingOrders.forEach(order => {
+    const orderCard = document.createElement("div");
+    orderCard.classList.add("card");
+    orderCard.innerHTML = `
+    <h3>${order.customerName}</h3>
+    <p><strong>Address:</strong> ${order.address}</p>
+    <p><strong>Order Date:</strong> ${formatDate(order.orderDate)}</p>
+    <p><strong>Quantity:</strong> ${order.quantity}</p>
+    <p><strong>Flavor & Size:</strong> ${order.flavorSize}</p>
+    <p><strong>Cost per Piece:</strong> ₹${order.costPerPiece}</p>
+    <p><strong>Total Payment:</strong> ₹${order.totalPayment}</p>
+    <p><strong>Advance Payment:</strong> ₹${order.advancePayment}</p>
+    <p><strong>Pending Amount:</strong> ₹${order.pendingAmount}</p>
+    <button class="btn" onclick="markAsDone('${order.id}', this)">Mark as Done</button>
+    `;
+    ordersContainer.appendChild(orderCard);
+});
+}catch (error) {
+                console.error("Error fetching orders:", error);
+                ordersContainer.innerHTML = "<p>Error loading orders.</p>";
+            }
+        });
+
+        function formatDate(dateString) {
+            const date = new Date(dateString);
+            return date.toLocaleDateString('en-GB'); // Formats as DD/MM/YYYY
+        }
+
+        function markAsDone(orderId, button) {
+            const confirmAction = confirm("Is the order delivered? Mark as done?");
+            if (!confirmAction) return;
+
+            fetch(`http://localhost:5000/mark-order-done/${orderId}`, {
+                method: "POST"
+            }).then(response => response.json()).then(data => {
+                if (data.success) {
+                    button.parentElement.remove();
+                } else {
+                    alert("Failed to mark order as done.");
+                }
+            }).catch(error => {
+                console.error("Error marking order as done:", error);
+            });
+        }
+
+        function goHome() {
+            window.location.href = "index.html";
+        }
+
+        window.addEventListener("pageshow", function (event) {
+    // If the page was loaded from cache, reload it
+    if (event.persisted) {
+        window.location.reload();
+    } else {
+        fetchOrders(); // Your function to get orders from Firestore
+    }
+});
+    </script>
+</body>
+</html>
